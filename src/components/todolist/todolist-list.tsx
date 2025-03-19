@@ -1,9 +1,9 @@
 "use client" // Menandakan bahwa komponen ini berjalan di sisi klien
 
-import { useState } from "react" // Menggunakan state lokal
-import { format } from "date-fns" // Library untuk memformat tanggal
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table" // Komponen tabel dari UI library
-import { Button } from "@/components/ui/button" // Komponen tombol
+import { useState } from "react" 
+import { format } from "date-fns"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table" 
+import { Button } from "@/components/ui/button" 
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,12 +14,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog" // Komponen dialog konfirmasi
+} from "@/components/ui/alert-dialog" 
 import type { Task } from "@/types" // Menggunakan tipe data Task untuk TypeScript
-import { deleteTask, updateTask } from "@/lib/todo" // Fungsi API untuk menghapus dan memperbarui tugas
-import { TodoListForm } from "./todolist-form" // Formulir untuk menambah/mengedit tugas
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog" // Komponen modal dialog
-import { Trash2, Check } from "lucide-react" // Ikon untuk tombol aksi
+import { deleteTask, updateTask } from "@/lib/todo" 
+import { TodoListForm } from "./todolist-form" 
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog" 
+import { Trash2, Check } from "lucide-react"
 
 // Mendefinisikan properti yang diterima oleh komponen
 interface TodoListProps {

@@ -14,7 +14,7 @@ export default function TodoPage() {
   // State untuk status loading saat mengambil data
   const [loading, setLoading] = useState(true)
 
-  // Fungsi untuk mengambil tugas dari API / database
+  // Fungsi untuk mengambil tugas dari  database
   const fetchTasks = async () => {
     setLoading(true) // Set status loading menjadi true saat memulai pengambilan data
     try {

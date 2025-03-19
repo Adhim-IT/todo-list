@@ -2,7 +2,7 @@
 
 import { prisma } from "./prisma"
 import { revalidatePath } from "next/cache"
-import type { TaskFormData } from "../types"
+import type { TaskFormData } from "@/types"
 
 export async function getTasks() {
   try {
@@ -37,9 +37,9 @@ export async function getTaskById(id: number) {
 
 export async function createTask(formData: TaskFormData) {
   try {
-    if (!formData.task || !formData.priority) {
-      return { error: "Task and priority are required" }
-    }
+      if (!formData.task || !formData.priority) {
+        return { error: "Task and priority are required" }
+      }
     const task = await prisma.task.create({
       data: {
         task: formData.task,
