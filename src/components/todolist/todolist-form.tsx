@@ -113,7 +113,7 @@ export function TodoListForm({ initialData, onSuccess }: TodoListFormProps) {
             <FormItem>
               <FormLabel>Task</FormLabel>
               <FormControl>
-                <Input placeholder="Enter task description" {...field} />
+                <Input placeholder="Enter task title" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
