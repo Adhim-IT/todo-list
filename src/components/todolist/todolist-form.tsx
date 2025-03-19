@@ -27,13 +27,14 @@ interface TodoListFormProps {
 
 export function TodoListForm({ initialData, onSuccess }: TodoListFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false) // State untuk status pengiriman form
-  const [isMounted, setIsMounted] = useState(false)
+  const [isMounted, setIsMounted] = useState(false) // State untuk mengecek apakah komponen telah dipasang
 
   // Inisialisasi form dengan react-hook-form
   const form = useForm<z.infer<typeof TaskFormSchema>>({
     resolver: zodResolver(TaskFormSchema), // Menggunakan skema validasi Zod
     defaultValues: initialData || { // Nilai default jika tidak ada data awal
       task: "",
+      description: "",
       priority: "MEDIUM",
       due_date: new Date(),
       status: false,
@@ -41,7 +42,7 @@ export function TodoListForm({ initialData, onSuccess }: TodoListFormProps) {
   })
 
   useEffect(() => {
-    setIsMounted(true)
+    setIsMounted(true) // Menandai bahwa komponen telah dipasang
   }, [])
 
   const disablePastDates = (date: Date) => {
@@ -125,7 +126,7 @@ export function TodoListForm({ initialData, onSuccess }: TodoListFormProps) {
           <FormItem>
             <FormLabel>Description</FormLabel>
             <FormControl>
-              <Input placeholder="Enter task description" {...field} />
+              <Input placeholder="Enter task description" {...field} value={field.value} />
             </FormControl>
             <FormMessage />
           </FormItem>
