@@ -6,19 +6,19 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import type { Task } from "@/types"
 import { deleteTask, updateTask } from "@/lib/todo"
 import { TodoListForm } from "./todolist-form"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { MoreHorizontal, Check, Trash2, Edit, Search, Plus, Calendar, ListTodo, Filter, ArrowUpDown } from 'lucide-react'
+import { MoreHorizontal, Check, Trash2, Edit, Search, Plus, ListTodo, Filter } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
+import { Task } from "@/types"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
-  DropdownMenuLabel
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu"
 import {
   Pagination,
@@ -28,15 +28,11 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Swal from "sweetalert2"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
+// Definisi tipe untuk tugas
+
 
 interface TodoListProps {
   tasks: Task[]
@@ -44,147 +40,137 @@ interface TodoListProps {
 }
 
 export function TodoList({ tasks, onRefresh }: TodoListProps) {
+  // State untuk mengelola tugas yang sedang diedit
   const [editTask, setEditTask] = useState<Task | null>(null)
+
+  // State untuk mengelola dialog tambah/edit tugas
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+
+  // State untuk pencarian
   const [searchQuery, setSearchQuery] = useState("")
-  const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(5)
+
+  // State untuk menandai komponen sudah dimuat
   const [isMounted, setIsMounted] = useState(false)
-  const [sortField, setSortField] = useState<string>("due_date")
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
+
+  // State untuk filter
   const [priorityFilter, setPriorityFilter] = useState<string>("ALL")
   const [statusFilter, setStatusFilter] = useState<string>("ALL")
-  const [activeTab, setActiveTab] = useState("all")
 
+  // State untuk pagination
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(5)
+
+  // Effect untuk menandai komponen sudah dimuat
   useEffect(() => {
     setIsMounted(true)
   }, [])
 
+  // Reset ke halaman pertama saat filter berubah
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, priorityFilter, statusFilter])
+
   // Filter tugas berdasarkan pencarian, prioritas, dan status
   const filteredTasks = tasks.filter((task) => {
-    const matchesSearch = 
+    // Filter berdasarkan pencarian
+    const matchesSearch =
       task.task.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      task.priority.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesPriority = 
-      priorityFilter === "ALL" || task.priority === priorityFilter;
-    
-    const matchesStatus = 
-      statusFilter === "ALL" || 
-      (statusFilter === "COMPLETED" && task.status) || 
-      (statusFilter === "PENDING" && !task.status);
+      task.priority.toLowerCase().includes(searchQuery.toLowerCase())
 
-    const matchesTab = 
-      activeTab === "all" || 
-      (activeTab === "pending" && !task.status) || 
-      (activeTab === "completed" && task.status);
-    
-    return matchesSearch && matchesPriority && matchesStatus && matchesTab;
-  });
+    // Filter berdasarkan prioritas
+    const matchesPriority = priorityFilter === "ALL" || task.priority === priorityFilter
 
-  // Urutkan tugas
-  const sortedTasks = [...filteredTasks].sort((a, b) => {
-    if (sortField === "due_date") {
-      const dateA = new Date(a.due_date).getTime();
-      const dateB = new Date(b.due_date).getTime();
-      return sortDirection === "asc" ? dateA - dateB : dateB - dateA;
-    } else if (sortField === "priority") {
-      const priorityOrder = { HIGH: 3, MEDIUM: 2, LOW: 1 };
-      const priorityA = priorityOrder[a.priority as keyof typeof priorityOrder] || 0;
-      const priorityB = priorityOrder[b.priority as keyof typeof priorityOrder] || 0;
-      return sortDirection === "asc" ? priorityA - priorityB : priorityB - priorityA;
-    } else if (sortField === "task") {
-      return sortDirection === "asc" 
-        ? a.task.localeCompare(b.task) 
-        : b.task.localeCompare(a.task);
-    }
-    return 0;
-  });
+    // Filter berdasarkan status
+    const matchesStatus =
+      statusFilter === "ALL" ||
+      (statusFilter === "COMPLETED" && task.status) ||
+      (statusFilter === "PENDING" && !task.status)
+
+    return matchesSearch && matchesPriority && matchesStatus
+  })
 
   // Dapatkan tugas saat ini untuk pagination
   const indexOfLastTask = currentPage * itemsPerPage
   const indexOfFirstTask = indexOfLastTask - itemsPerPage
-  const currentTasks = sortedTasks.slice(indexOfFirstTask, indexOfLastTask)
+  const currentTasks = filteredTasks.slice(indexOfFirstTask, indexOfLastTask)
 
   // Hitung total halaman
-  const totalPages = Math.ceil(sortedTasks.length / itemsPerPage)
+  const totalPages = Math.ceil(filteredTasks.length / itemsPerPage)
+
+  // Navigasi pagination
+  const goToPage = (page: number) => {
+    if (page > 0 && page <= totalPages) {
+      setCurrentPage(page)
+    }
+  }
 
   // Menangani penandaan tugas sebagai selesai
   const handleMarkComplete = async (task: Task) => {
     try {
+      // Panggil API untuk memperbarui status tugas
       await updateTask({
         ...task,
         status: true,
       })
 
+      // Tampilkan notifikasi sukses
       Swal.fire({
         title: "Berhasil!",
         text: "Tugas telah ditandai sebagai selesai",
         icon: "success",
-        confirmButtonColor: "#3085d6",
         timer: 1500,
-        customClass: {
-          popup: 'animated fadeInDown faster'
-        }
       })
 
+      // Refresh daftar tugas
       onRefresh()
     } catch (error) {
       console.error("Error marking task as complete:", error)
 
+      // Tampilkan notifikasi error
       Swal.fire({
         title: "Kesalahan!",
         text: "Gagal memperbarui status tugas",
         icon: "error",
-        confirmButtonColor: "#d33",
       })
     }
   }
 
   // Menangani penghapusan tugas
   const handleDelete = async (id: number) => {
+    // Konfirmasi penghapusan
     Swal.fire({
       title: "Apakah Anda yakin?",
-      text: "Tindakan ini tidak dapat dibatalkan. Tugas akan dihapus secara permanen.",
+      text: "Tugas akan dihapus secara permanen.",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#d33",
       cancelButtonColor: "#3085d6",
       confirmButtonText: "Ya, hapus!",
       cancelButtonText: "Batal",
-      showClass: {
-        popup: 'animated fadeIn faster'
-      },
-      hideClass: {
-        popup: 'animated fadeOut faster'
-      }
     }).then(async (result: any) => {
       if (result.isConfirmed) {
         try {
+          // Panggil API untuk menghapus tugas
           await deleteTask(id)
 
+          // Tampilkan notifikasi sukses
           Swal.fire({
             title: "Terhapus!",
             text: "Tugas Anda telah dihapus.",
             icon: "success",
             timer: 1500,
-            showClass: {
-              popup: 'animated fadeIn faster'
-            },
-            hideClass: {
-              popup: 'animated fadeOut faster'
-            }
           })
 
+          // Refresh daftar tugas
           onRefresh()
         } catch (error) {
           console.error("Error deleting task:", error)
 
+          // Tampilkan notifikasi error
           Swal.fire({
             title: "Kesalahan!",
             text: "Gagal menghapus tugas",
             icon: "error",
-            confirmButtonColor: "#d33",
           })
         }
       }
@@ -203,9 +189,17 @@ export function TodoList({ tasks, onRefresh }: TodoListProps) {
       case "HIGH":
         return <Badge variant="destructive">Tinggi</Badge>
       case "MEDIUM":
-        return <Badge variant="default" className="bg-amber-500">Sedang</Badge>
+        return (
+          <Badge variant="default" className="bg-amber-500">
+            Sedang
+          </Badge>
+        )
       case "LOW":
-        return <Badge variant="outline" className="text-green-600 border-green-600">Rendah</Badge>
+        return (
+          <Badge variant="outline" className="text-green-600 border-green-600">
+            Rendah
+          </Badge>
+        )
       default:
         return null
     }
@@ -224,50 +218,25 @@ export function TodoList({ tasks, onRefresh }: TodoListProps) {
     )
   }
 
-  // Menangani toggle pengurutan
-  const toggleSort = (field: string) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-    } else {
-      setSortField(field);
-      setSortDirection("asc");
-    }
-  };
-
-  // Reset ke halaman pertama saat filter berubah
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [searchQuery, priorityFilter, statusFilter, activeTab])
-
-  // Navigasi pagination
-  const goToPage = (page: number) => {
-    if (page > 0 && page <= totalPages) {
-      setCurrentPage(page)
-    }
-  }
-
+  // Jangan render apa pun jika komponen belum dimuat
   if (!isMounted) {
     return null
   }
-
-  // Mendapatkan jumlah tugas
-  const pendingCount = tasks.filter(task => !task.status).length;
-  const completedCount = tasks.filter(task => task.status).length;
 
   return (
     <Card className="shadow-md">
       <CardHeader>
         <div className="flex items-center justify-between">
+          {/* Judul kartu */}
           <CardTitle className="flex items-center text-xl font-bold">
             <ListTodo className="h-5 w-5 mr-2 text-primary" />
             Pengelola Tugas
           </CardTitle>
+
+          {/* Dialog untuk menambah/mengedit tugas */}
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button 
-                className="bg-primary hover:bg-primary/90" 
-                onClick={() => setEditTask(null)}
-              >
+              <Button className="bg-primary hover:bg-primary/90" onClick={() => setEditTask(null)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Tambah Tugas Baru
               </Button>
@@ -287,144 +256,69 @@ export function TodoList({ tasks, onRefresh }: TodoListProps) {
           </Dialog>
         </div>
       </CardHeader>
+
       <CardContent className="p-6">
         <div className="space-y-4">
-          {/* Kartu Statistik */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <Card className="bg-blue-50 dark:bg-gray-800 border-blue-100 dark:border-gray-700">
-              <CardContent className="p-4 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Tugas</p>
-                  <h3 className="text-2xl font-bold">{tasks.length}</h3>
-                </div>
-                <div className="h-12 w-12 rounded-full bg-blue-100 dark:bg-gray-700 flex items-center justify-center">
-                  <ListTodo className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-amber-50 dark:bg-gray-800 border-amber-100 dark:border-gray-700">
-              <CardContent className="p-4 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Belum Selesai</p>
-                  <h3 className="text-2xl font-bold">{pendingCount}</h3>
-                </div>
-                <div className="h-12 w-12 rounded-full bg-amber-100 dark:bg-gray-700 flex items-center justify-center">
-                  <Calendar className="h-6 w-6 text-amber-600 dark:text-amber-400" />
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-green-50 dark:bg-gray-800 border-green-100 dark:border-gray-700">
-              <CardContent className="p-4 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Selesai</p>
-                  <h3 className="text-2xl font-bold">{completedCount}</h3>
-                </div>
-                <div className="h-12 w-12 rounded-full bg-green-100 dark:bg-gray-700 flex items-center justify-center">
-                  <Check className="h-6 w-6 text-green-600 dark:text-green-400" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Tab dan Filter */}
-          <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-            <Tabs 
-              defaultValue="all" 
-              className="w-full md:w-auto"
-              value={activeTab}
-              onValueChange={setActiveTab}
-            >
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="all">Semua Tugas</TabsTrigger>
-                <TabsTrigger value="pending">Belum Selesai</TabsTrigger>
-                <TabsTrigger value="completed">Selesai</TabsTrigger>
-              </TabsList>
-            </Tabs>
-            
-            <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Cari tugas..."
-                  className="pl-8 w-full"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-              
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="gap-1">
-                    <Filter className="h-4 w-4" />
-                    Filter
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>Filter Tugas</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  
-                  <div className="p-2">
-                    <p className="text-sm font-medium mb-1">Prioritas</p>
-                    <Select 
-                      value={priorityFilter} 
-                      onValueChange={setPriorityFilter}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Pilih prioritas" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ALL">Semua Prioritas</SelectItem>
-                        <SelectItem value="HIGH">Tinggi</SelectItem>
-                        <SelectItem value="MEDIUM">Sedang</SelectItem>
-                        <SelectItem value="LOW">Rendah</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <DropdownMenuSeparator />
-                  
-                  <div className="p-2">
-                    <p className="text-sm font-medium mb-1">Status</p>
-                    <Select 
-                      value={statusFilter} 
-                      onValueChange={setStatusFilter}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Pilih status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ALL">Semua Status</SelectItem>
-                        <SelectItem value="COMPLETED">Selesai</SelectItem>
-                        <SelectItem value="PENDING">Belum Selesai</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="gap-1">
-                    <ArrowUpDown className="h-4 w-4" />
-                    Urutan
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => toggleSort("task")}>
-                    Nama Tugas {sortField === "task" && (sortDirection === "asc" ? "↑" : "↓")}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => toggleSort("priority")}>
-                    Prioritas {sortField === "priority" && (sortDirection === "asc" ? "↑" : "↓")}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => toggleSort("due_date")}>
-                    Tanggal {sortField === "due_date" && (sortDirection === "asc" ? "↑" : "↓")}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+          {/* Area pencarian dan filter */}
+          <div className="flex flex-col md:flex-row gap-2">
+            {/* Kotak pencarian */}
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Cari tugas..."
+                className="pl-8 w-full"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
+
+            {/* Dropdown filter */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-1">
+                  <Filter className="h-4 w-4 mr-1" />
+                  Filter
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Filter Tugas</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+
+                {/* Filter prioritas */}
+                <div className="p-2">
+                  <p className="text-sm font-medium mb-1">Prioritas</p>
+                  <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Pilih prioritas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">Semua Prioritas</SelectItem>
+                      <SelectItem value="HIGH">Tinggi</SelectItem>
+                      <SelectItem value="MEDIUM">Sedang</SelectItem>
+                      <SelectItem value="LOW">Rendah</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <DropdownMenuSeparator />
+
+                {/* Filter status */}
+                <div className="p-2">
+                  <p className="text-sm font-medium mb-1">Status</p>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Pilih status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">Semua Status</SelectItem>
+                      <SelectItem value="COMPLETED">Selesai</SelectItem>
+                      <SelectItem value="PENDING">Belum Selesai</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Tabel Tugas */}
@@ -434,6 +328,7 @@ export function TodoList({ tasks, onRefresh }: TodoListProps) {
                 <TableRow>
                   <TableHead className="w-[50px]">No</TableHead>
                   <TableHead>Tugas</TableHead>
+                  <TableHead>Deskripsi</TableHead>
                   <TableHead>Prioritas</TableHead>
                   <TableHead>Tanggal</TableHead>
                   <TableHead>Status</TableHead>
@@ -453,24 +348,32 @@ export function TodoList({ tasks, onRefresh }: TodoListProps) {
                   </TableRow>
                 ) : (
                   currentTasks.map((task, index) => (
-                    <TableRow 
-                      key={task.id} 
-                      className={`${index % 2 === 0 ? "bg-muted/30" : ""} ${task.status ? "bg-green-50/50 dark:bg-green-950/10" : ""}`}
-                    >
+                    <TableRow key={task.id} className={`${task.status ? "bg-green-50/50" : ""}`}>
+                      {/* Nomor urut */}
                       <TableCell className="font-medium">{indexOfFirstTask + index + 1}</TableCell>
-                      <TableCell className="max-w-[200px] truncate">
+
+                      {/* Nama tugas */}
+                      <TableCell>
+                        <span className={task.status ? "line-through text-muted-foreground" : ""}>{task.task}</span>
+                      </TableCell>
+
+                      {/* Deskripsi tugas */}
+                      <TableCell>
                         <span className={task.status ? "line-through text-muted-foreground" : ""}>
-                          {task.task}
+                          {task.description}
                         </span>
                       </TableCell>
+
+                      {/* Prioritas tugas */}
                       <TableCell>{getPriorityBadge(task.priority)}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center">
-                          <Calendar className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-                          {format(new Date(task.due_date), "dd MMM yyyy")}
-                        </div>
-                      </TableCell>
+
+                      {/* Tanggal jatuh tempo */}
+                      <TableCell>{format(new Date(task.due_date), "dd MMM yyyy")}</TableCell>
+
+                      {/* Status tugas */}
                       <TableCell>{getStatusBadge(task.status)}</TableCell>
+
+                      {/* Menu aksi */}
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -482,10 +385,7 @@ export function TodoList({ tasks, onRefresh }: TodoListProps) {
                             <DropdownMenuLabel>Aksi Tugas</DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             {!task.status && (
-                              <DropdownMenuItem 
-                                onClick={() => handleMarkComplete(task)}
-                                className="text-green-600"
-                              >
+                              <DropdownMenuItem onClick={() => handleMarkComplete(task)} className="text-green-600">
                                 <Check className="h-4 w-4 mr-2" />
                                 Tandai Selesai
                               </DropdownMenuItem>
@@ -495,10 +395,7 @@ export function TodoList({ tasks, onRefresh }: TodoListProps) {
                               Edit Tugas
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              onClick={() => handleDelete(task.id)}
-                              className="text-red-600"
-                            >
+                            <DropdownMenuItem onClick={() => handleDelete(task.id)} className="text-red-600">
                               <Trash2 className="h-4 w-4 mr-2" />
                               Hapus Tugas
                             </DropdownMenuItem>
@@ -513,15 +410,16 @@ export function TodoList({ tasks, onRefresh }: TodoListProps) {
           </div>
 
           {/* Pagination dan Item Per Halaman */}
-          {sortedTasks.length > 0 && (
+          {filteredTasks.length > 0 && (
             <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-4">
+              {/* Pengaturan jumlah item per halaman */}
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">Tampilkan</span>
                 <Select
                   value={itemsPerPage.toString()}
                   onValueChange={(value) => {
-                    setItemsPerPage(parseInt(value));
-                    setCurrentPage(1);
+                    setItemsPerPage(Number.parseInt(value))
+                    setCurrentPage(1)
                   }}
                 >
                   <SelectTrigger className="w-[80px] h-8">
@@ -531,13 +429,14 @@ export function TodoList({ tasks, onRefresh }: TodoListProps) {
                     <SelectItem value="5">5</SelectItem>
                     <SelectItem value="10">10</SelectItem>
                     <SelectItem value="15">15</SelectItem>
-                    <SelectItem value="20">20</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-            
+
+              {/* Kontrol pagination */}
               <Pagination>
                 <PaginationContent>
+                  {/* Tombol halaman sebelumnya */}
                   <PaginationItem>
                     <PaginationPrevious
                       onClick={() => goToPage(currentPage - 1)}
@@ -545,30 +444,29 @@ export function TodoList({ tasks, onRefresh }: TodoListProps) {
                     />
                   </PaginationItem>
 
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageToShow;
-                    if (totalPages <= 5) {
-                      pageToShow = i + 1;
-                    } else if (currentPage <= 3) {
-                      pageToShow = i + 1;
-                    } else if (currentPage >= totalPages - 2) {
-                      pageToShow = totalPages - 4 + i;
+                  {/* Nomor halaman */}
+                  {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
+                    let pageToShow
+                    if (totalPages <= 3) {
+                      pageToShow = i + 1
+                    } else if (currentPage <= 2) {
+                      pageToShow = i + 1
+                    } else if (currentPage >= totalPages - 1) {
+                      pageToShow = totalPages - 2 + i
                     } else {
-                      pageToShow = currentPage - 2 + i;
+                      pageToShow = currentPage - 1 + i
                     }
 
                     return (
                       <PaginationItem key={i}>
-                        <PaginationLink 
-                          onClick={() => goToPage(pageToShow)} 
-                          isActive={currentPage === pageToShow}
-                        >
+                        <PaginationLink onClick={() => goToPage(pageToShow)} isActive={currentPage === pageToShow}>
                           {pageToShow}
                         </PaginationLink>
                       </PaginationItem>
-                    );
+                    )
                   })}
 
+                  {/* Tombol halaman berikutnya */}
                   <PaginationItem>
                     <PaginationNext
                       onClick={() => goToPage(currentPage + 1)}
@@ -584,3 +482,4 @@ export function TodoList({ tasks, onRefresh }: TodoListProps) {
     </Card>
   )
 }
+

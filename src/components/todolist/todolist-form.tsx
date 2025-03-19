@@ -118,6 +118,19 @@ export function TodoListForm({ initialData, onSuccess }: TodoListFormProps) {
             </FormItem>
           )}
         />
+        <FormField
+        control={form.control}
+        name="description"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Description</FormLabel>
+            <FormControl>
+              <Input placeholder="Enter task description" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+        />
         
         {/* Dropdown untuk memilih prioritas tugas */}
         <FormField

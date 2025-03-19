@@ -43,6 +43,7 @@ export async function createTask(formData: TaskFormData) {
     const task = await prisma.task.create({
       data: {
         task: formData.task,
+        description: formData.description,
         priority: formData.priority,
         due_date: formData.due_date,
         status: formData.status,
@@ -69,6 +70,7 @@ export async function updateTask(formData: TaskFormData) {
       },
       data: {
         task: formData.task,
+        description: formData.description,
         priority: formData.priority,
         due_date: formData.due_date,
         status: formData.status,

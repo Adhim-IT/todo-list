@@ -10,6 +10,7 @@ export const TaskFormSchema = z.object({
       message: "Task must be at least 2 characters.",
     })
     .max(255, "Task must be less than 255 characters"),
+  description: z.string().max(255, "Description must be less than 255 characters"),
   priority: PriorityEnum,
   due_date: z.date(),
   status: z.boolean().default(false),
