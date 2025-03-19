@@ -37,7 +37,7 @@ export default function TodoPage() {
   }, [])
 
   return (
-    <div className="container mx-auto py-10">
+    <div className="container mx-auto py-10 max-h-1">
       {/* Menggunakan Card sebagai wrapper UI */}
       <Card>
         <CardHeader>
