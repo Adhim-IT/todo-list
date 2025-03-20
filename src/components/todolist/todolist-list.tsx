@@ -34,16 +34,18 @@ import Swal from "sweetalert2"
 // Definisi tipe untuk tugas
 
 
+
+//menentukan tipe data dari properti 
 interface TodoListProps {
   tasks: Task[]
-  onRefresh: () => void
+  onRefresh: () => void //void harus berupa fungsi
 }
 
 export function TodoList({ tasks, onRefresh }: TodoListProps) {
-  // State untuk mengelola tugas yang sedang diedit
+  //menyimpan objek bertipe Task atau nilai null. Inisialisasi state ini dengan nilai null
   const [editTask, setEditTask] = useState<Task | null>(null)
 
-  // State untuk mengelola dialog tambah/edit tugas
+  //  Inisialisasi dengan nilai false. Sediakan fungsi setIsDialogOpen untuk mengubah nilai isDialogOpen
   const [isDialogOpen, setIsDialogOpen] = useState(false)
 
   // State untuk pencarian
